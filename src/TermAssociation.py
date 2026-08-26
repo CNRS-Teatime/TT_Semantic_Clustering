@@ -23,7 +23,7 @@ def create_object_concept_map(db : database.StandardDatabase, collection_name : 
 
     def query(doc_id: str, datab):
         result = datab.aql.execute("\
-                                FOR v IN 1..1 INBOUND @document\
+                                FOR v IN 1..1 ANY @document\
                                     GRAPH @graphname\
                                     OPTIONS {order: 'bfs'}\
                                     SORT v._id\

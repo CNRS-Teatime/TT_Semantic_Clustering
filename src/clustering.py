@@ -83,7 +83,7 @@ if __name__ == "__main__":
         write_matrix_to_file(CONCEPT_MATRIX_PATH, concept_ids, concept_matrix)
         concept_ids, concept_matrix = fetch_distance_matrix(CONCEPT_MATRIX_PATH)
 
-        logging.log(logging.INFO, f"Concept matrix cumputed, took {time.time() - start}seconds")
+        logging.log(logging.INFO, f"Concept matrix computed, took {time.time() - start}seconds")
 
 
     logging.log(logging.INFO, "Starting object concept mapping...")

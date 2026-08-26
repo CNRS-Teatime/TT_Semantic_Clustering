@@ -85,7 +85,7 @@ def compute_clusters(ids, matrix, nb_clusters: list[int], visualise_silouhette_s
 
     :returns: A dictionary with object ids as keys and lists of cluster associated with the id as value
     """
-    clustering = AgglomerativeClustering(metric="precomputed", linkage="average", distance_threshold=0, n_clusters=None)
+    clustering = AgglomerativeClustering(metric="precomputed", linkage="average", distance_threshold=0, n_clusters=None, compute_full_tree=True)
 
     fitted_clustering = clustering.fit(matrix)
 
@@ -100,14 +100,18 @@ def compute_clusters(ids, matrix, nb_clusters: list[int], visualise_silouhette_s
     for n in nb_clusters: #Iterate over all desired granularity (max cluster number)
 
         result = fcluster(linkage_matrix, n, criterion='maxclust')
+        if max(result) > 1:
 
-        #Silouhette score logging for further analysis
-        sc = silhouette_score(matrix, result, metric="precomputed")
-        logging.log(logging.INFO, f"Silouhette score for {n} cluster : {sc}")
+            #Silouhette score logging for further analysis
+            sc = silhouette_score(matrix, result, metric="precomputed")
+            logging.log(logging.INFO, f"Silouhette score for {n} cluster : {sc}")
 
-        score.append(sc)
+            score.append(sc)
+        else:
+            score.append(100)
 
         granular_list.append(result)
+        print(max(result))
 
     if visualise_silouhette_score :
         fig, ax = plt.subplots()

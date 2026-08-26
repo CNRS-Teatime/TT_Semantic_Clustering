@@ -1,8 +1,10 @@
 from typing import Optional
 from arango import ArangoClient, database
 import networkx as nx
-import logging
+import logging, os
 import numpy as np
+
+from dotenv import load_dotenv
 
 def fetch_from_arango(graph_name : str, database_name : str, weights : dict = None) -> Optional[nx.DiGraph]:
     """
@@ -16,8 +18,10 @@ def fetch_from_arango(graph_name : str, database_name : str, weights : dict = No
     :returns: A networkx directed graph with arangodb document ids as node labels, or None if the graph does not exist.
     """
 
-    client = ArangoClient(hosts="http://localhost:8529")
-    db: database.StandardDatabase = client.db(database_name, username="root", password="test")
+    load_dotenv()
+
+    client = ArangoClient(hosts=os.getenv("DB_ADDRESS"))
+    db: database.StandardDatabase = client.db(database_name, username=os.getenv("DB_USER"), password=os.getenv("DB_PASSWORD"))
 
     if not db.has_graph(graph_name):
         return None
