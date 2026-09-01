@@ -81,7 +81,6 @@ if __name__ == "__main__":
         concept_ids = list(G.nodes._nodes.keys())
 
         write_matrix_to_file(CONCEPT_MATRIX_PATH, concept_ids, concept_matrix)
-        concept_ids, concept_matrix = fetch_distance_matrix(CONCEPT_MATRIX_PATH)
 
         logging.log(logging.INFO, f"Concept matrix computed, took {time.time() - start}seconds")
 

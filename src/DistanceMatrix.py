@@ -79,7 +79,7 @@ def compute_concepts_matrix(graph : nx.DiGraph) -> np.ndarray:
                     if document_ids_as_list[j] in bf_path_length_dict[document_ids_as_list[i]]: # The dictionary returned only has keys for reachable node pairs.
                         distance = bf_path_length_dict[document_ids_as_list[i]][document_ids_as_list[j]]
                     else: # The node pair is not reachable
-                        distance = 10000000 # TODO : I need to find a better way
+                        distance = float('inf') # TODO : I need to find a better way
                         fail += 1
                 else: # All nodes must have an outgoing entry in the matrix
                     raise ArithmeticError
@@ -127,7 +127,7 @@ def compute_object_matrix(concept_matrix: np.ndarray, concept_ids: list[str], ob
     for i in range(n):
         for j in range(i+1, n):
             if len(object_mapping[objects_ids[i]]) == 0 or len(object_mapping[objects_ids[j]]) == 0:
-                distance = -1
+                distance = float('inf') #FIXME : Do better than that
             else:
                 distance = distance_between_sets_of_concepts(object_mapping[objects_ids[i]], object_mapping[objects_ids[j]], concept_matrix, concept_ids_map)
 
