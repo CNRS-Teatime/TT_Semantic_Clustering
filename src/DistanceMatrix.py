@@ -24,7 +24,7 @@ def fetch_from_arango(graph_name : str, database_name : str, weights : dict = No
     db: database.StandardDatabase = client.db(database_name, username=os.getenv("DB_USER"), password=os.getenv("DB_PASSWORD"))
 
     if not db.has_graph(graph_name):
-        return None
+        raise ValueError(f"{graph_name} not available in database {database_name}")
 
     if weights is None:
         weights = {
