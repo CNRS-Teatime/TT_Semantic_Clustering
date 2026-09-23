@@ -148,7 +148,7 @@ def compute_clusters(ids, matrix, nb_clusters: list[int], visualise_silouhette_s
     return id_to_cluster_mapping
 
 
-def add_cluster_back_to_db(gran_clusters: dict[str, list[int]], db_name: str, db_user: str,
+def add_cluster_back_to_db(gran_clusters: dict[str, list[int]], concept_graph_name : str, db_name: str, db_user: str,
                            db_password: str, host_name: str = "http://localhost:8529") -> None:
     """
     Push back cluster numbers to arangoDB. The credentials are usually defined in a .env, fetched by the main function.
@@ -176,7 +176,7 @@ def add_cluster_back_to_db(gran_clusters: dict[str, list[int]], db_name: str, db
             document_collections[collection_name] = db.collection(collection_name)
 
         if document_collections[collection_name].has(id):
-            document_collections[collection_name].update({'_id': id, f"clusters_with_{os.getenv("CONCEPTS_GRAPH")}_{os.getenv("NODE_COLLECTION")}": gran_clusters[id]}, silent=True)
+            document_collections[collection_name].update({'_id': id, f"clusters_with_{concept_graph_name}_{os.getenv("NODE_COLLECTION")}": gran_clusters[id]}, silent=True)
 
 if __name__ == "__main__":
 

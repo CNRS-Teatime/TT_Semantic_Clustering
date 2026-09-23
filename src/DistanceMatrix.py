@@ -86,8 +86,20 @@ def compute_concepts_matrix(graph : nx.DiGraph) -> np.ndarray:
     logging.log(logging.WARNING, f"Fails {(fail/(n*n)) * 100}%")
     return distance_matrix
 
+def hausdorff_distance(set1 : list[str], set2 : list[str], concept_matrix: np.ndarray, concept_ids_map: dict[str, float]) -> float:
+    # Directed Hausdorff: h(A,B) = max(min(dist(a,b) for b in B) for a in A)
+    h_ab = max(min(concept_matrix[concept_ids_map[a]][concept_ids_map[b]] for b in set2) for a in set1)
+    h_ba = max(min(concept_matrix[concept_ids_map[a]][concept_ids_map[b]] for a in set1) for b in set2)
+    return max(h_ab, h_ba)
+
 def distance_between_sets_of_concepts(set1 : list[str], set2 : list[str], concept_matrix: np.ndarray, concept_ids_map: dict[str, float]) -> float:
-    dist = 0
+    """
+    Simple average of pairwise distance
+    """
+    if not set1 or not set2:
+        dist = constants.MAX_DISTANCE
+    else:
+        dist = 0
     for c1 in set1:
         for c2 in set2:
             dist += concept_matrix[concept_ids_map[c1]][concept_ids_map[c2]]
@@ -124,9 +136,15 @@ def compute_object_matrix(concept_matrix: np.ndarray, concept_ids: list[str], ob
             if len(object_mapping[objects_ids[i]]) == 0 or len(object_mapping[objects_ids[j]]) == 0:
                 distance = constants.MAX_DISTANCE
             else:
-                distance = distance_between_sets_of_concepts(object_mapping[objects_ids[i]], object_mapping[objects_ids[j]], concept_matrix, concept_ids_map)
+                distance = hausdorff_distance(object_mapping[objects_ids[i]], object_mapping[objects_ids[j]], concept_matrix, concept_ids_map)
 
             distance_matrix[i][j] = distance_matrix[j][i] = distance
+
+    print("Concept matrix stats:")
+    print(f"  Shape: {distance_matrix.shape}")
+    print(f"  Min: {np.min(distance_matrix)}")
+    print(f"  Max: {np.max(distance_matrix)}")
+    print(f"  Unique values: {np.unique(distance_matrix)[:20]}")
 
     return distance_matrix
 

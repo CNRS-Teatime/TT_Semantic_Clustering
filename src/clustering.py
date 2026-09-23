@@ -54,12 +54,12 @@ if __name__ == "__main__":
         HOST = os.getenv("DB_ADDRESS")
         USER = os.getenv("DB_USER")
         PASSWORD = os.getenv("DB_PASSWORD")
-        NB_CLUSTERS = [int(n) for n in os.getenv("NB_CLUSTERS").split(',')]
+        NB_GRAN = int(os.getenv("NB_GRAN"))
 
         if not os.path.isdir(".cache"):
             os.makedirs(".cache")
 
-        logging.log(logging.INFO, f"Starting clustering on objects from {OBJECT_COLLECTION} associated to {CONCEPT_GRAPH_NAME} via {ASSOCIATION_GRAPH_NAME}, in database {DATABASE}, with {NB_CLUSTERS} cluster")
+        logging.log(logging.INFO, f"Starting clustering on objects from {OBJECT_COLLECTION} associated to {CONCEPT_GRAPH_NAME} via {ASSOCIATION_GRAPH_NAME}, in database {DATABASE}, with {NB_GRAN} cluster")
 
         if os.path.isfile(CONCEPT_MATRIX_PATH):
             logging.log(logging.INFO, "Starting concept matrix fetching...")
@@ -94,19 +94,31 @@ if __name__ == "__main__":
 
         object_maping = create_object_concept_map(db, OBJECT_COLLECTION, ASSOCIATION_GRAPH_NAME, concept_ids)
 
+        unique_concept_sets = set(tuple(sorted(concepts)) for concepts in object_maping.values())
+        number_of_unique_sets = len(unique_concept_sets)
+        print(f"Unique concept sets: {len(unique_concept_sets)}")
+        print(f"Sample sets: {list(unique_concept_sets)[:5]}")
+
+        logging.log(logging.INFO, f"Number of objects: {len(object_maping)}")
+
         logging.log(logging.INFO, f"Finished, took {time.time() - start}seconds")
         logging.log(logging.INFO, "Starting object distance matrix...")
         start = time.time()
 
-        object_matrix = compute_object_matrix(concept_matrix, concept_ids, object_maping)
-        object_ids = list(object_maping.keys())
+        if not os.path.isfile(OBJECT_MATRIX_PATH):
+
+            object_matrix = compute_object_matrix(concept_matrix, concept_ids, object_maping)
+            object_ids = list(object_maping.keys())
+            write_matrix_to_file(OBJECT_MATRIX_PATH, object_ids, object_matrix)
+        else:
+            object_ids, object_matrix = fetch_distance_matrix(OBJECT_MATRIX_PATH)
 
         logging.log(logging.INFO, f"Finished, took {time.time() - start}seconds")
 
-        write_matrix_to_file(OBJECT_MATRIX_PATH, object_ids, object_matrix)
 
+        cluster_numbers = [x for x in range(int(number_of_unique_sets/NB_GRAN*2), number_of_unique_sets, int(number_of_unique_sets/NB_GRAN))]
         # These create a list, where clusters_X[i] returns the cluster number of item i in the original ids list
-        id_to_cluster_mapping = compute_clusters(object_ids, object_matrix, NB_CLUSTERS, True)
+        id_to_cluster_mapping = compute_clusters(object_ids, object_matrix, cluster_numbers, True)
 
         if os.getenv("PUSH_TO_DB") == "TRUE":
-            add_cluster_back_to_db(id_to_cluster_mapping, DATABASE, USER, PASSWORD, HOST)
+            add_cluster_back_to_db(id_to_cluster_mapping, CONCEPT_GRAPH_NAME, DATABASE, USER, PASSWORD, HOST)
