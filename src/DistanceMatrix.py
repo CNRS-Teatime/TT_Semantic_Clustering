@@ -3,6 +3,7 @@ from arango import ArangoClient, database
 import networkx as nx
 import logging, os
 import numpy as np
+import constants
 
 from dotenv import load_dotenv
 
@@ -27,13 +28,7 @@ def fetch_from_arango(graph_name : str, database_name : str, weights : dict = No
         raise ValueError(f"{graph_name} not available in database {database_name}")
 
     if weights is None:
-        weights = {
-            'narrower': 1,
-            'broader': 1,
-            'related': 3,
-            'closeMatch': 1.5,
-            'exactMatch': 0
-        }
+        weights = constants.DEFAULT_WEIGHTS
 
     edge_collections : list = db.graph(graph_name).edge_collections()
 
@@ -44,7 +39,7 @@ def fetch_from_arango(graph_name : str, database_name : str, weights : dict = No
         edge_cursor = edge_coll.all()
         for edge in edge_cursor:
             if edge['type'] in weights:
-                edges_as_list.append((edge['_from'], edge['_to'], int(weights[edge['type']])))
+                edges_as_list.append((edge['_from'], edge['_to'], weights[edge['type']]))
             else:
                 edges_as_list.append((edge['_from'], edge['_to'], 1))
 
@@ -79,7 +74,7 @@ def compute_concepts_matrix(graph : nx.DiGraph) -> np.ndarray:
                     if document_ids_as_list[j] in bf_path_length_dict[document_ids_as_list[i]]: # The dictionary returned only has keys for reachable node pairs.
                         distance = bf_path_length_dict[document_ids_as_list[i]][document_ids_as_list[j]]
                     else: # The node pair is not reachable
-                        distance = float('inf') # TODO : I need to find a better way
+                        distance = constants.MAX_DISTANCE # TODO : I need to find a better way
                         fail += 1
                 else: # All nodes must have an outgoing entry in the matrix
                     raise ArithmeticError
@@ -91,7 +86,7 @@ def compute_concepts_matrix(graph : nx.DiGraph) -> np.ndarray:
     logging.log(logging.WARNING, f"Fails {(fail/(n*n)) * 100}%")
     return distance_matrix
 
-def distance_between_sets_of_concepts(set1 : list[str], set2 : list[str], concept_matrix: np.ndarray, concept_ids_map: dict[str, int]):
+def distance_between_sets_of_concepts(set1 : list[str], set2 : list[str], concept_matrix: np.ndarray, concept_ids_map: dict[str, float]) -> float:
     dist = 0
     for c1 in set1:
         for c2 in set2:
@@ -99,8 +94,8 @@ def distance_between_sets_of_concepts(set1 : list[str], set2 : list[str], concep
 
     return dist / (len(set1) * len(set2))
 
-def map_concept_id_to_index(c_ids: list) -> dict[str, int]:
-    concept_id_map : dict[str, int] = {}
+def map_concept_id_to_index(c_ids: list) -> dict[str, float]:
+    concept_id_map : dict[str, float] = {}
 
     for i in range(len(c_ids)):
         concept_id_map[c_ids[i]] = i
@@ -121,13 +116,13 @@ def compute_object_matrix(concept_matrix: np.ndarray, concept_ids: list[str], ob
     n = int(len(object_mapping))
     distance_matrix = np.array([[0 for i in range(n)] for j in range(n)])
     objects_ids = np.array(list(object_mapping.keys()))
-    concept_ids_map : dict[str, int] = map_concept_id_to_index(concept_ids)
+    concept_ids_map : dict[str, float] = map_concept_id_to_index(concept_ids)
 
 
     for i in range(n):
         for j in range(i+1, n):
             if len(object_mapping[objects_ids[i]]) == 0 or len(object_mapping[objects_ids[j]]) == 0:
-                distance = float('inf') #FIXME : Do better than that
+                distance = constants.MAX_DISTANCE
             else:
                 distance = distance_between_sets_of_concepts(object_mapping[objects_ids[i]], object_mapping[objects_ids[j]], concept_matrix, concept_ids_map)
 

@@ -17,7 +17,7 @@ def create_object_concept_map(db : database.StandardDatabase, collection_name : 
 
     collection = db.collection(collection_name)
 
-    if not db.has_graph("graph_name"):
+    if not db.has_graph(graph_name):
         raise ValueError(f"{graph_name} not available in database")
 
     documents = collection.all()

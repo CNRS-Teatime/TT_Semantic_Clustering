@@ -7,7 +7,9 @@ from arango import ArangoClient, database
 from sklearn.cluster import AgglomerativeClustering
 from matplotlib import pyplot as plt
 from scipy.cluster.hierarchy import dendrogram, fcluster
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
+
+import constants
 
 
 def create_linkage_matrix(model) -> np.ndarray:
@@ -60,12 +62,11 @@ def fetch_distance_matrix(file_path : str) -> tuple[list ,np.ndarray]:
         for i in range(size):
             line = []
             for d in f.readline().split(','):
-                if int(d) == -1:
-                    line.append(10000000000000000000)
+                if float(d) == -1:
+                    line.append(constants.MAX_DISTANCE)
                 else:
-                    line.append(int(d))
+                    line.append(float(d))
             matrix.append(line[:size])
-
 
         return ids, np.asarray(matrix)
 
@@ -95,7 +96,9 @@ def compute_clusters(ids, matrix, nb_clusters: list[int], visualise_silouhette_s
 
     nb_clusters.sort() # Just to make it easier to retrieve granularities
 
-    score = []
+    sc_score = []
+    db_score = []
+    ch_score = []
 
     for n in nb_clusters: #Iterate over all desired granularity (max cluster number)
 
@@ -104,11 +107,19 @@ def compute_clusters(ids, matrix, nb_clusters: list[int], visualise_silouhette_s
 
             #Silouhette score logging for further analysis
             sc = silhouette_score(matrix, result, metric="precomputed")
-            logging.log(logging.INFO, f"Silouhette score for {n} cluster : {sc}")
+            db = davies_bouldin_score(matrix, result)
+            ch = calinski_harabasz_score(matrix, result)
+            logging.log(logging.INFO, f"Silhouette score for {max(result)} clusters : {sc}")
+            logging.log(logging.INFO, f"davies-bouldin score for {max(result)} clusters : {db}")
+            logging.log(logging.INFO, f"calinski-harabasz score for {max(result)} clusters : {ch}")
 
-            score.append(sc)
+            sc_score.append(sc)
+            db_score.append(db)
+            ch_score.append(ch)
         else:
-            score.append(100)
+            sc_score.append(-1)
+            db_score.append(-1)
+            ch_score.append(-1)
 
         granular_list.append(result)
         print(max(result))
@@ -116,7 +127,7 @@ def compute_clusters(ids, matrix, nb_clusters: list[int], visualise_silouhette_s
     if visualise_silouhette_score :
         fig, ax = plt.subplots()
 
-        ax.plot([str(x) for x in nb_clusters], score, label = "Silouhette score")
+        ax.plot([str(x) for x in nb_clusters], sc_score, label = "Silouhette score")
         ax.set_ylabel("Silouhette score")
         ax.set_xlabel("Number of clusters in the result")
         ax.set_title("Silouhette score at various granularity")
